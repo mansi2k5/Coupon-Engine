@@ -1,107 +1,77 @@
 # Coupon Engine
 
-![Tests](https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME/actions/workflows/test.yml/badge.svg)
+![Tests](https://github.com/mansi2k5/Coupon-Engine/actions/workflows/test.yml/badge.svg)
 
-A React Native (Expo) app for browsing, viewing, and validating discount coupons against a mock cart — built as a case study for the React Native App Development Intern assignment.
+This is my submission for the React Native App Development Intern case study. It's a small app for browsing discount coupons, checking their details, and validating a coupon code against a cart total — basically the coupon section you'd find inside a shopping or edtech app.
 
-## Features
+## What's in the app
 
-- **Coupon List** — search by code/description, filter by type (Percentage / Flat / Free Shipping), sort by soonest expiry or highest discount, loading/error/empty states, pull-to-refresh. Includes a "Simulate API Error" button so the error state can be demoed on demand, since a real failure isn't otherwise easy to trigger against a mock API.
-- **Coupon Detail** — full coupon info, "Copy Code" button (uses `expo-clipboard`)
-- **Coupon Validator** — enter a code + cart total, validates against mock rules (not found / expired / below minimum order value), shows discount + final price. Validate button is disabled until both fields are filled, and shows a brief loading state to mirror a real network call.
-- **Applied Coupons** — session-local list of coupons applied via the validator, with a Remove option
-- **Accessibility** — interactive elements (buttons, search, filters, sort chips) carry `accessibilityLabel`/`accessibilityRole`/`accessibilityState` so the app is usable with screen readers, not just visually.
-- **CI** — GitHub Actions (`.github/workflows/test.yml`) runs the unit test suite automatically on every push/PR to `main`.
+- **Coupons tab** — browse all coupons, search by code or description, filter by type (Percentage / Flat / Free Shipping), and sort by soonest expiry or highest discount. Pull down to refresh. There's also a small "Simulate API Error" button so you can actually see the error state working without me having to fake it in a screenshot.
+- **Coupon detail screen** — tap any coupon to see its full details (min order value, expiry, applicable categories) and copy the code with one tap.
+- **Validator tab** — enter a code and a cart total, hit Validate, and it checks whether the code exists, is expired, and whether your cart meets the minimum order value. Shows the discount and final price if it's valid, or a clear reason if it's not.
+- **Applied tab** — coupons you've successfully applied during this session, with an option to remove them.
 
-## Setup Instructions
+I know the UI isn't meant to be pixel-perfect for this assignment, so I focused more on getting the logic, structure, and states right.
 
-### Prerequisites
-- [Node.js](https://nodejs.org) (LTS version)
-- [Expo Go](https://expo.dev/go) app installed on your phone (Play Store / App Store) — no Android Studio/Xcode required
+## Running it yourself
 
-### Run the app
+You'll need Node.js installed, and the Expo Go app on your phone if you want to test it on a real device (not required — it also runs in a browser).
+
 ```bash
-# Install dependencies
 npm install
-
-# Start the Expo dev server
 npx expo start
 ```
-Then scan the QR code shown in the terminal/browser with the Expo Go app (Android: Expo Go's scanner, iOS: Camera app). Press `w` in the terminal to open it in a browser instead.
+
+Scan the QR code with Expo Go, or press `w` in the terminal to open it in your browser instead.
+
+If you want to preview it in the browser and haven't already installed the web-specific packages, run this once:
+```bash
+npx expo install react-native-web react-dom @expo/metro-runtime
+```
 
 ### Running the tests
-Validation logic is covered by unit tests (see `src/utils/__tests__/couponValidation.test.js`):
+
+I wrote unit tests for the coupon validation logic (the part I cared most about getting right):
 ```bash
 npm test
 ```
+There's also a GitHub Actions workflow set up so these run automatically on every push — you can check the Actions tab on this repo to see them pass.
 
-## Project Structure
+## How I structured the project
 
 ```
 coupon-engine/
-├── App.js                     # Root component, wraps navigation + context providers
+├── App.js
 ├── src/
-│   ├── data/
-│   │   └── mockCoupons.js     # Mock "database" + simulated fetch (setTimeout-based)
-│   ├── utils/
-│   │   └── couponValidation.js # Pure validation/calculation functions (no UI, no state)
-│   ├── context/
-│   │   └── AppliedCouponsContext.js # Shared session state for applied coupons
-│   ├── components/
-│   │   ├── CouponCard.js      # Reusable card used in the list screen
-│   │   └── StatusBadge.js     # Reusable Active/Expired badge
-│   ├── screens/
-│   │   ├── CouponListScreen.js
-│   │   ├── CouponDetailScreen.js
-│   │   ├── CouponValidatorScreen.js
-│   │   └── AppliedCouponsScreen.js
-│   └── navigation/
-│       └── AppNavigator.js    # Bottom tabs (Coupons / Validator / Applied) + stack for detail
+│   ├── data/mockCoupons.js          — the mock "API" (hardcoded data + a setTimeout-based fetch)
+│   ├── utils/couponValidation.js    — all validation/discount logic, kept separate from any screen
+│   ├── context/AppliedCouponsContext.js — shared state for applied coupons
+│   ├── components/                  — CouponCard, StatusBadge (reused in more than one place)
+│   ├── screens/                     — one file per screen
+│   └── navigation/AppNavigator.js   — bottom tabs + a stack for the coupon detail screen
 ```
 
-### Why this structure?
-- **`data/`** isolates the mock API so it's a one-line swap to a real API call later (same function signature, same Promise-based return).
-- **`utils/couponValidation.js`** holds *all* validation and discount-calculation logic as plain functions, deliberately kept out of any component. See below for why.
-- **`context/`** holds only session state that needs to be shared across unrelated screens (Applied Coupons is used by both the Validator screen and the Applied Coupons screen). Everything else uses local `useState` — no need for a heavier state library at this scale.
-- **`components/`** holds pieces reused in more than one place (badge, card), keeping screens focused on layout/composition rather than repeated markup.
-- Navigation uses a **bottom tab navigator** for the three top-level sections (Coupons, Validator, Applied), with the Coupon List and Coupon Detail nested in their own **stack** inside the Coupons tab, since Detail is a drill-down from the List rather than a top-level section.
+I split things this way mainly so each piece only does one job. The mock API lives on its own so swapping it for a real backend later would just mean changing what's inside `fetchCoupons`, not touching any screen. The components folder only has things that are actually reused (the card and the badge) — I didn't want to over-abstract single-use bits of UI into their own files just for the sake of it.
 
-### Where is coupon validation logic, and why is it separated?
-All validation (code lookup, expiry check, minimum order check) and discount math live in `src/utils/couponValidation.js` as pure functions — they take data in and return a result object, with no dependency on React, navigation, or component state.
+**Where I put the validation logic, and why:** all of it lives in `src/utils/couponValidation.js`, as plain functions with no React or navigation code anywhere near them. I did this on purpose — it means I could write real unit tests against it without needing to render a component, and if this same validation ever needed to run somewhere else (say, a checkout screen down the line), it's just one import away instead of copy-pasted logic scattered across screens. It also makes the business rules easy to find in one place instead of hunting through UI code.
 
-Reasons for this separation:
-1. **Testability** — pure functions can be unit tested directly (e.g. with Jest) without rendering any component or mocking navigation.
-2. **Reuse** — the same `validateCoupon` function could be called from the Validator screen today, and from a future checkout/cart screen later, without duplicating rules.
-3. **Single source of truth** — if a rule changes (e.g. how free shipping is calculated), it changes in exactly one file, not in every screen that happens to check coupons.
-4. **Clear separation of concerns** — screens are responsible only for *displaying* state and calling these functions; they don't encode business rules themselves.
+**If there were a real backend:** I'd move `validateCoupon` server-side and have the Validator screen just call an API instead (`POST /coupons/validate` with the code and cart total), but keep the same response shape (`valid`, `reason`, `discountAmount`, `finalPrice`) so I wouldn't have to rewrite the screen itself — only swap what's calling it. Validating client-side only is fine for a case study, but in a real app it'd mean the rules could be bypassed or go stale if the app isn't updated alongside a promotion, and usage-limit tracking per user (excluded from this assignment) would also have to live on the server anyway.
 
-### How would server-side validation work with a real backend? (optional, as noted in the assignment)
-If a backend existed, `validateCoupon` in `utils/` would be replaced by an API call (e.g. `POST /coupons/validate` with `{ code, cartTotal }`), and the server would return the same shape of result (`valid`, `reason`, `discountAmount`, `finalPrice`) so the screen-level code wouldn't need to change — only the data source would. This also closes off the main risk of client-side-only validation: a user could otherwise inspect/bypass client logic, or coupon rules could go stale if the client isn't updated at the same time as a promotion changes. Server-side validation would also be the natural place to enforce usage limits per user, which this assignment explicitly excludes.
+## AI-assisted development
 
-## AI-Assisted Development
+I used **Claude** (Anthropic) quite a bit for this — mainly to move faster on the Expo/React Native setup since I hadn't worked with React Native before, and I'm more used to plain React.
 
-**Tool used:** Claude (Anthropic), used as a pair-programmer/scaffolding tool inside the chat interface.
+Some of the things I actually asked it for:
+- To scaffold the initial Expo project with React Navigation and expo-clipboard already wired up, since I didn't know the exact setup steps for a fresh RN project
+- To write the pure validation functions (expired check, minimum order check, discount calculation for each coupon type) as testable functions rather than logic buried in a screen
+- Help setting up a GitHub Actions workflow to run the tests automatically, which I hadn't done before
 
-**Example prompts used:**
-- "Scaffold a React Native Expo project for a coupon engine app with these screens: list, detail, validator, applied coupons. Use React Navigation and expo-clipboard."
-- "Write pure validation functions for checking if a coupon is expired, below minimum order value, or not found, and calculating discount amount for percentage/flat/free-shipping types."
-- "Set up a Context provider for applied coupons so the validator screen and applied coupons screen can share state."
+**Where it helped most:** the initial project scaffolding and folder structure — that's the part that would've taken me the longest to figure out on my own without prior React Native experience. It also helped me write proper unit tests, which I hadn't written for a React Native project before.
 
-**Where AI helped most:**
-- Generating the initial project scaffold (folder structure, navigation boilerplate, `package.json`/`app.json`/`babel.config.js`) quickly, so the focus could stay on the actual coupon logic and UI rather than Expo project setup.
-- Producing consistent StyleSheet-based styling across screens so the app looks cohesive without manually rewriting the same patterns per file.
-- Drafting the pure `couponValidation.js` functions with clear, testable input/output shapes.
+**What I actually did myself:** I read through every file it generated rather than just copying it in blindly, and ran the app after each screen was added instead of waiting until the end. I added the pull-to-refresh behaviour, the disabled/loading state on the Validate button, and the "Simulate API Error" button myself once I noticed the error state existed in code but had no way to actually trigger it — that felt like an important gap to close for a working demo, not just working code. I also set up the actual GitHub repo, dealt with Git for the first time properly (including sorting out a merge conflict from an earlier accidental upload), and tested everything manually on both a browser and my phone.
 
-**What was manually corrected/implemented:**
-- Reviewed and tested every generated file rather than accepting it blindly — ran the app after each major addition (list screen, validator, applied coupons) instead of writing everything then testing once.
-- Added the pull-to-refresh interaction on the coupon list, the disabled/loading state on the Validate button, and the simulated 500ms validation delay myself, after noticing the original validator felt instant in a way a real network call wouldn't.
-- Wrote the Jest unit tests for `couponValidation.js` (case-insensitive code matching, expired coupon, below-minimum-order, not-found, and correct discount math for each coupon type) to have actual proof of correctness rather than relying on manual clicking alone.
-- [Add any further tweaks you make yourself — e.g. a color/copy change, a bug you hit on your phone that didn't show up in the browser, etc.]
+**How I checked it actually works:** `npm test` runs the unit tests covering valid coupons, expired coupons, coupons below the minimum order value, unknown codes, and discount math for percentage/flat/free-shipping types. On top of that I manually tested every screen — searching and filtering the list, copying a code from the detail screen, running the validator against a mix of the valid and expired test coupons, and applying/removing coupons on the Applied tab.
 
-**How correctness was validated:**
-- Automated: `npm test` runs unit tests against the validation logic covering valid coupons, expired coupons, below-minimum-order-value coupons, unknown codes, and discount calculation for all three coupon types (percentage, flat, free shipping).
-- Manual: ran the app via Expo Go on a physical device and tested searching/filtering the coupon list, viewing a coupon's detail and copying its code, validating each of the 7 mock coupons (including the two pre-set expired ones and one below-minimum case), and applying/removing coupons from the Applied Coupons screen.
-- [Add specific coupon codes + cart totals you personally tried on your device and what you expected vs. saw, e.g. "Tried FLAT100 with cart total 100 — correctly showed the minimum order value error."]
+## What I left out on purpose
 
-## Notes on Scope (per assignment instructions)
-This project intentionally does **not** include: authentication, real payment/checkout, an admin panel, push notifications, or backend-side usage-count tracking — all explicitly out of scope for this assignment.
+Per the assignment, I didn't add authentication, real payment/checkout, an admin panel, push notifications, or backend usage-count tracking.
