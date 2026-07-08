@@ -4,12 +4,37 @@
 
 This is my submission for the React Native App Development Intern case study. It's a small app for browsing discount coupons, checking their details, and validating a coupon code against a cart total — basically the coupon section you'd find inside a shopping or edtech app.
 
+**Contents:** [Features](#whats-in-the-app) · [Tech stack](#tech-stack) · [Running it](#running-it-yourself) · [Screenshots](#screenshots) · [Project structure](#how-i-structured-the-project) · [AI usage](#ai-assisted-development) · [What I'd improve](#what-id-improve-with-more-time)
+
+## Tech stack
+
+- **React Native** + **Expo** (SDK 51)
+- **React Navigation** — bottom tabs + native stack
+- **expo-clipboard** — for the "Copy Code" button
+- **React Context** — for sharing applied-coupon state across screens
+- **Jest** + **jest-expo** — unit tests for the validation logic
+- **GitHub Actions** — CI, runs tests on every push
+
 ## What's in the app
 
-- **Coupons tab** — browse all coupons, search by code or description, filter by type (Percentage / Flat / Free Shipping), and sort by soonest expiry or highest discount. Pull down to refresh. There's also a small "Simulate API Error" button so you can actually see the error state working without me having to fake it in a screenshot.
-- **Coupon detail screen** — tap any coupon to see its full details (min order value, expiry, applicable categories) and copy the code with one tap.
-- **Validator tab** — enter a code and a cart total, hit Validate, and it checks whether the code exists, is expired, and whether your cart meets the minimum order value. Shows the discount and final price if it's valid, or a clear reason if it's not.
-- **Applied tab** — coupons you've successfully applied during this session, with an option to remove them.
+Mapped against the assignment's requirements:
+
+| Requirement | Where it lives |
+|---|---|
+| Coupon list + search + filter | `CouponListScreen.js` |
+| Status badge (Active/Expired) | `StatusBadge.js`, derived in `couponValidation.js` |
+| Coupon detail + copy to clipboard | `CouponDetailScreen.js` |
+| Validator (code + cart total → discount/error) | `CouponValidatorScreen.js` + `couponValidation.js` |
+| Applied coupons (session state, removable) | `AppliedCouponsScreen.js` + `AppliedCouponsContext.js` |
+| Loading / error / empty states | `CouponListScreen.js` |
+| Invalid/expired state in validator | `CouponValidatorScreen.js` |
+
+A few things beyond the base spec that I added on my own:
+- **Sort** by soonest expiry or highest discount
+- **Pull-to-refresh** on the coupon list
+- A **"Simulate API Error"** button, so the error state is actually demoable instead of just being dead code that only fires if the mock API happens to fail
+- **Accessibility labels** on all interactive elements (buttons, inputs, cards) so it works properly with a screen reader
+- **Unit tests** + a **CI workflow** that runs them automatically
 
 I know the UI isn't meant to be pixel-perfect for this assignment, so I focused more on getting the logic, structure, and states right.
 
@@ -36,6 +61,29 @@ I wrote unit tests for the coupon validation logic (the part I cared most about 
 npm test
 ```
 There's also a GitHub Actions workflow set up so these run automatically on every push — you can check the Actions tab on this repo to see them pass.
+
+## Screenshots
+
+**Coupon list — default view, with search, filter, sort, and the error-demo button**
+![Coupon list](./screenshots/coupon-list-default.png)
+
+**Sorted by soonest expiry** — surfaces the expired coupons first
+![Coupon list sorted by expiry](./screenshots/coupon-list-sorted-expiry.png)
+
+**Filtered to Free Shipping, sorted by highest discount**
+![Coupon list filtered and sorted](./screenshots/coupon-list-filter-sort.png)
+
+**Search in action**
+![Coupon list search](./screenshots/coupon-list-search.png)
+
+**Coupon detail screen**
+![Coupon detail](./screenshots/coupon-detail.png)
+
+**Validator — successful validation with discount and final price**
+![Validator success](./screenshots/validator-success.png)
+
+**Applied Coupons screen**
+![Applied coupons](./screenshots/applied-coupons.png)
 
 ## How I structured the project
 
@@ -75,3 +123,10 @@ Some of the things I actually asked it for:
 ## What I left out on purpose
 
 Per the assignment, I didn't add authentication, real payment/checkout, an admin panel, push notifications, or backend usage-count tracking.
+
+## What I'd improve with more time
+
+- Move to TypeScript, at least for `couponValidation.js` — the input/output shapes are simple enough that types would catch mistakes early and make the functions self-documenting
+- Persist applied coupons with `AsyncStorage` so they survive an app restart, instead of resetting every session
+- Add component-level tests (not just the validation logic) using `@testing-library/react-native`
+- A proper design pass — right now it's functional but fairly plain, and I'd like to spend more time on visual polish if this were a real product rather than a case study
